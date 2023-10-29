@@ -5,13 +5,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import User, Subscribe
-from .serializers import FollowListSerializer, FollowCreateSerializer
+from .serializers import SubscribeListSerializer, SubscriveCreateSerializer
 
 
 class SubscriptionsView(generics.ListAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = FollowListSerializer
+    serializer_class = SubscribeListSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -30,12 +30,12 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
         user = self.request.user
         author = get_object_or_404(User, id=id)
         data = {'user': user.id, 'author': id}
-        serializer = FollowCreateSerializer(
+        serializer = SubscriveCreateSerializer(
             data=data, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
         follow = Subscribe.objects.create(user=user, author=author)
-        serializer = FollowCreateSerializer(
+        serializer = SubscribeCreateSerializer(
             follow, context={'request': request}
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)

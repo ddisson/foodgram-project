@@ -5,7 +5,7 @@ from rest_framework.fields import CurrentUserDefault
 from rest_framework.generics import get_object_or_404
 from rest_framework.validators import UniqueTogetherValidator
 
-from recipes.serializers import FollowRecipeSerializer
+from recipes.serializers import SubscribeRecipeSerializer
 from .models import User, Subscribe
 
 
@@ -52,7 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
-class FollowListSerializer(serializers.ModelSerializer):
+class SubscribeListSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
@@ -73,7 +73,7 @@ class FollowListSerializer(serializers.ModelSerializer):
         recipes = author.recipes.all()
         if limit:
             recipes = recipes[:int(limit)]
-        serializer = FollowRecipeSerializer(
+        serializer = SubscribeRecipeSerializer(
             recipes,
             many=True,
             context={'request': request}
@@ -94,7 +94,7 @@ class FollowListSerializer(serializers.ModelSerializer):
         )
 
 
-class FollowCreateSerializer(serializers.ModelSerializer):
+class SubscriveCreateSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         slug_field='id',
         queryset=User.objects.all(),

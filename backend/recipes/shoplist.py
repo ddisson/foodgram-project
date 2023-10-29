@@ -9,55 +9,54 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
-FONTS_ROOT = os.path.dirname(os.path.abspath(__file__))
-HEADER_FONT_SIZE = 28
+FONTS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+FONT_NAME = 'arial'
+FONT_PATH = os.path.join(FONTS_ROOT, 'arial.ttf')
+pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+
+HEADER_FONT_SIZE = 30
 HEADER_TOP_MARGIN = 20
 HEADER_BOTTOM_MARGIN = 35
-BODY_FONT_SIZE = 14
-BODY_LINE_SPACING = 12
-TEXT_TOP_MARGIN = 10
-TEXT_BOTTOM_MARGIN = 12
-TEXT_RIGHT_MARGIN = 12
-TEXT_LEFT_MARGIN = 50
+
+BODY_FONT_SIZE = 16
+BODY_LINE_SPACING = 10
+
+TEXT_MARGINS = {
+    'top': 10,
+    'bottom': 12,
+    'right': 12,
+    'left': 50
+}
+
 SPACER = 1
-STREAM_POSITION = 0
 
 
-def header(doc, title, size, space, ta):
-    doc.append(Spacer(SPACER, HEADER_TOP_MARGIN))
-    doc.append(Paragraph(title, ParagraphStyle(
-        name='name', fontName='arial', fontSize=size, alignment=ta
-    )))
-    doc.append(Spacer(SPACER, space))
-    return doc
+def create_paragraph(text, size, alignment=TA_LEFT, font=FONT_NAME):
+    return Paragraph(text, ParagraphStyle(fontName=font, fontSize=size, alignment=alignment))
 
 
-def body(doc, text, size):
-    for line in text:
-        doc.append(Paragraph(line, ParagraphStyle(
-            name='line', fontName='arial', fontSize=size, alignment=TA_LEFT
-        )))
-        doc.append(Spacer(SPACER, BODY_LINE_SPACING))
-    return doc
+def add_header_to_document(document, title):
+    document.append(Spacer(SPACER, HEADER_TOP_MARGIN))
+    document.append(create_paragraph(title, HEADER_FONT_SIZE, TA_CENTER))
+    document.append(Spacer(SPACER, HEADER_BOTTOM_MARGIN))
+    return document
+
+
+def add_body_to_document(document, text_lines):
+    for line in text_lines:
+        document.append(create_paragraph(line, BODY_FONT_SIZE))
+        document.append(Spacer(SPACER, BODY_LINE_SPACING))
+    return document
 
 
 def download_shopping_list(data):
     buffer = io.BytesIO()
-    font_path = os.path.join(FONTS_ROOT, 'fonts/', 'arial.ttf')
-    pdfmetrics.registerFont(TTFont('arial', font_path))
-    doc = header(
-        [], 'Список покупок', HEADER_FONT_SIZE, HEADER_BOTTOM_MARGIN, TA_CENTER
-    )
-    pdf = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        topMargin=TEXT_TOP_MARGIN,
-        bottomMargin=TEXT_BOTTOM_MARGIN,
-        rightMargin=TEXT_RIGHT_MARGIN,
-        leftMargin=TEXT_LEFT_MARGIN,
-    )
-    pdf.build(body(doc, data, BODY_FONT_SIZE))
-    buffer.seek(STREAM_POSITION)
-    return FileResponse(
-        buffer, as_attachment=True, filename='shopping_list.pdf'
-    )
+
+    document = add_header_to_document([], 'Список покупок')
+    add_body_to_document(document, data)
+
+    pdf = SimpleDocTemplate(buffer, pagesize=A4, **TEXT_MARGINS)
+    pdf.build(document)
+
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename='shopping_list.pdf')

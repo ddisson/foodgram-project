@@ -1,4 +1,3 @@
-import rest_framework.permissions
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -7,14 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .filters import IngredientFilter, RecipeFilter, Recipe
-from .models import Ingredient, Tag, Favorite, ShoppingCart, IngredientRecipe
+from .filters import IngredientFilter, RecipeFilter
+from .models import Ingredient, Tag, Recipe, Favorite, ShoppingCart, IngredientRecipe
 from .permissions import IsAuthenticatedOwnerOrReadOnly
-from .serializers import (
-    IngredientSerializer, TagSerializer, RecipeSerializer,
-    FollowRecipeSerializer
-)
-from .shoplist import download_shopping_list
+from .serializers import IngredientSerializer, TagSerializer, RecipeSerializer, FollowRecipeSerializer
+from .utils import download_pdf
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -43,76 +39,52 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @staticmethod
-    def __favorite_shopping(request, pk, model, errors):
+    def _handle_favorite_shopping(self, request, pk, model, errors):
         if request.method == 'POST':
             if model.objects.filter(user=request.user, recipe__id=pk).exists():
-                return Response(
-                    {'errors': errors['recipe_in']},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response(errors['recipe_in'], status=status.HTTP_400_BAD_REQUEST)
+
             recipe = get_object_or_404(Recipe, id=pk)
             model.objects.create(user=request.user, recipe=recipe)
-            serializer = FollowRecipeSerializer(
-                recipe, context={'request': request}
-            )
+            serializer = FollowRecipeSerializer(recipe, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         recipe = model.objects.filter(user=request.user, recipe__id=pk)
         if recipe.exists():
             recipe.delete()
-            return Response(
-                {'msg': 'Успешно удалено'},
-                status=status.HTTP_204_NO_CONTENT
-            )
-        return Response(
-            {'error': errors['recipe_not_in']},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+            return Response({'msg': 'Успешно удалено'}, status=status.HTTP_204_NO_CONTENT)
 
-    @action(
-        methods=['POST', 'DELETE'],
-        detail=True,
-        permission_classes=[rest_framework.permissions.IsAuthenticated]
-    )
+        return Response(errors['recipe_not_in'], status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['POST', 'DELETE'], detail=True, permission_classes=[AllowAny])
     def favorite(self, request, pk):
-        return self.__favorite_shopping(request, pk, Favorite, {
-            'recipe_in': 'Рецепт уже в избранном',
-            'recipe_not_in': 'Рецепта нет в избранном'
-        })
+        errors = {
+            'recipe_in': {'errors': 'Рецепт уже в избранном'},
+            'recipe_not_in': {'error': 'Рецепта нет в избранном'}
+        }
+        return self._handle_favorite_shopping(request, pk, Favorite, errors)
 
-    @action(
-        methods=['POST', 'DELETE'],
-        detail=True,
-        permission_classes=[rest_framework.permissions.IsAuthenticated]
-    )
+    @action(methods=['POST', 'DELETE'], detail=True, permission_classes=[AllowAny])
     def shopping_cart(self, request, pk):
-        return self.__favorite_shopping(request, pk, ShoppingCart, {
-            'recipe_in': 'Рецепт уже в списке покупок',
-            'recipe_not_in': 'Рецепта нет в спике покупок'
-        })
+        errors = {
+            'recipe_in': {'errors': 'Рецепт уже в списке покупок'},
+            'recipe_not_in': {'error': 'Рецепта нет в спике покупок'}
+        }
+        return self._handle_favorite_shopping(request, pk, ShoppingCart, errors)
 
-    @action(
-        methods=['GET'],
-        detail=False,
-        permission_classes=[rest_framework.permissions.IsAuthenticated]
-    )
+    @action(methods=['GET'], detail=False, permission_classes=[AllowAny])
     def download_shopping_cart(self, request):
-        ingredients_obj = (
+        ingredients_data = (
             IngredientRecipe.objects.filter(recipe__carts__user=request.user)
             .values('ingredient__name', 'ingredient__measurement_unit')
             .annotate(sum_amount=Sum('amount'))
         )
-        data_dict = {}
-        ingredients_list = []
-        for item in ingredients_obj:
-            name = item['ingredient__name'].capitalize()
-            unit = item['ingredient__measurement_unit']
-            sum_amount = item['sum_amount']
-            data_dict[name] = [sum_amount, unit]
-        for ind, (key, value) in enumerate(data_dict.items(), 1):
-            if ind < 10:
-                ind = '0' + str(ind)
-            ingredients_list.append(
-                f'{ind}. {key} - ' f'{value[0]} ' f'{value[1]}'
-            )
-        return download_shopping_list(ingredients_list)
+        ingredients = {
+            item['ingredient__name'].capitalize(): [item['sum_amount'], item['ingredient__measurement_unit']]
+            for item in ingredients_data
+        }
+        ingredients_list = [
+            f"{str(ind).zfill(2)}. {name} - {values[0]} {values[1]}"
+            for ind, (name, values) in enumerate(ingredients.items(), 1)
+        ]
+        return download_pdf(ingredients_list)
