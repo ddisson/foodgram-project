@@ -32,7 +32,12 @@ SPACER = 1
 
 
 def create_paragraph(text, size, alignment=TA_LEFT, font=FONT_NAME):
-    return Paragraph(text, ParagraphStyle(fontName=font, fontSize=size, alignment=alignment))
+    return Paragraph(
+        text, ParagraphStyle(
+            fontName=font,
+            fontSize=size,
+            alignment=alignment)
+    )
 
 
 def add_header_to_document(document, title):
@@ -59,4 +64,7 @@ def download_shopping_list(data):
     pdf.build(document)
 
     buffer.seek(0)
-    return FileResponse(buffer, as_attachment=True, filename='shopping_list.pdf')
+    return FileResponse(
+        buffer, as_attachment=True,
+        filename='shopping_list.pdf'
+    )

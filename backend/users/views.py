@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import User, Subscribe
-from .serializers import SubscribeListSerializer, SubscriveCreateSerializer
+from .serializers import SubscribeListSerializer, SubscribeCreateSerializer
 
 
 class SubscriptionsView(generics.ListAPIView):
@@ -30,7 +30,7 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
         user = self.request.user
         author = get_object_or_404(User, id=id)
         data = {'user': user.id, 'author': id}
-        serializer = SubscriveCreateSerializer(
+        serializer = SubscribeCreateSerializer(
             data=data, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)

@@ -1,8 +1,6 @@
 import csv
 import logging
-import os
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from recipes.models import Ingredient
@@ -12,7 +10,10 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('file_path', type=str, help="Path to the ingredients CSV file")
+        parser.add_argument(
+            'file_path',
+            type=str,
+            help="Path to the ingredients CSV file")
 
     def handle(self, *args, **options):
         file_path = options['file_path']
@@ -30,4 +31,3 @@ class Command(BaseCommand):
         logging.info(
             f' В базу данных успешно добавлены ингредиенты - {counter} шт.'
         )
-

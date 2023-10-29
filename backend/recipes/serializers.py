@@ -12,7 +12,7 @@ from .models import (
 
 class IngredientSerializer(serializers.ModelSerializer):
     """Serializer for the Ingredient model."""
-    
+
     class Meta:
         fields = ('id', 'name', 'measurement_unit')
         model = Ingredient
@@ -30,7 +30,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 class AuthorSerializer(serializers.ModelSerializer):
     """Serializer for the User model as an Author with subscription status."""
-    
+
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
@@ -41,14 +41,17 @@ class AuthorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed')
+        fields = ('email', 'id', 'username', 'first_name',
+                  'last_name', 'is_subscribed')
 
 
 class IngredientRecipeSerializer(serializers.ModelSerializer):
     """Serializer for representing Ingredient in a Recipe context."""
-    
-    id = serializers.PrimaryKeyRelatedField(source='ingredient.id', queryset=Ingredient.objects.all())
-    measurement_unit = serializers.CharField(source='ingredient.measurement_unit', read_only=True)
+
+    id = serializers.PrimaryKeyRelatedField(
+        source='ingredient.id', queryset=Ingredient.objects.all())
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit', read_only=True)
     name = serializers.CharField(source='ingredient.name', read_only=True)
 
     class Meta:
@@ -64,7 +67,7 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 
 class RecipeListSerializer(serializers.ModelSerializer):
     """Serializer for Recipe in a list context with additional attributes."""
-    
+
     author = AuthorSerializer(read_only=True)
     ingredients = serializers.SerializerMethodField()
     tags = TagSerializer(many=True)
@@ -97,7 +100,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 class IngredientCreateSerializer(serializers.ModelSerializer):
     """Serializer for Ingredient creation in a Recipe context."""
-    
+
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
@@ -109,13 +112,17 @@ class RecipeSerializer(serializers.ModelSerializer):
     """Main serializer for Recipe model with creation and update logic."""
 
     author = AuthorSerializer(read_only=True)
-    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all())
     ingredients = IngredientCreateSerializer(many=True)
     image = Base64ImageField()
 
     def to_representation(self, instance):
         request = self.context.get('request')
-        return RecipeListSerializer(instance, context={'request': request}).data
+        return RecipeListSerializer(
+            instance,
+            context={'request': request}
+        ).data
 
     def _create_or_update_ingredients(self, instance, ingredients_data):
         instance.ingredients.clear()
@@ -135,12 +142,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags_data = validated_data.pop('tags')
 
         if not ingredients_data or not tags_data:
-            raise serializers.ValidationError('At least one ingredient and tag are required.')
+            raise serializers.ValidationError(
+                'At least one ingredient and tag are required.')
 
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags_data)
         self._create_or_update_ingredients(recipe, ingredients_data)
-        
+
         return recipe
 
     @transaction.atomic
@@ -163,20 +171,23 @@ class RecipeSerializer(serializers.ModelSerializer):
         if ingredient_data:
             checked_ingredients = set()
             for ingredient in ingredient_data:
-                ingredient_obj = get_object_or_404(Ingredient, id=ingredient['id'])
+                ingredient_obj = get_object_or_404(
+                    Ingredient, id=ingredient['id'])
                 if ingredient_obj in checked_ingredients:
-                    raise serializers.ValidationError('Duplicate ingredient detected.')
+                    raise serializers.ValidationError(
+                        'Duplicate ingredient detected.')
                 checked_ingredients.add(ingredient_obj)
         return data
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image', 'text', 'cooking_time')
+        fields = ('id', 'tags', 'author', 'ingredients',
+                  'name', 'image', 'text', 'cooking_time')
 
 
 class SubscribeRecipeSerializer(serializers.ModelSerializer):
     """Serializer for representing followed Recipes."""
-    
+
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')

@@ -13,10 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
-        if (
-            'request' not in self.context or
-            self.context['request'].user.is_anonymous
-        ):
+        if ('request' not in self.context
+                or self.context['request'].user.is_anonymous):
             return False
         return Subscribe.objects.filter(
             author=obj, user=self.context['request'].user
@@ -98,8 +96,7 @@ class SubscriveCreateSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         slug_field='id',
         queryset=User.objects.all(),
-        default=CurrentUserDefault(),
-        ),
+        default=CurrentUserDefault(),),
     author = serializers.SlugRelatedField(
         slug_field='id',
         queryset=User.objects.all())
@@ -123,4 +120,3 @@ class SubscriveCreateSerializer(serializers.ModelSerializer):
                 message='Вы уже подписаны на данного автора'
             )
         ]
-
