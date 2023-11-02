@@ -3,32 +3,31 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from backend.constants import (
+    USER_MAIL_MAX_LENGTH, USER_NAME_MAX_LENGTH
+)
+
 
 class User(AbstractUser):
-    username_validator = UnicodeUsernameValidator()
     email = models.EmailField(
         verbose_name='адрес электронной почты',
         blank=False,
         unique=True,
-        max_length=254,
+        max_length=USER_MAIL_MAX_LENGTH,
         error_messages={
             'unique': 'Такой адрес электронной почты уже зарегистрирован.'
         },
     )
     username = models.CharField(
         verbose_name='логин',
-        max_length=150,
+        max_length=USER_NAME_MAX_LENGTH,
         unique=True,
         help_text='Не более 150 символов.',
-        validators=[username_validator],
+        validators=[UnicodeUsernameValidator()],
         error_messages={
             'unique': 'Пользователь с таким именем уже зарегистрирован.'
         },
     )
-    first_name = models.CharField(verbose_name='имя', max_length=150)
-    last_name = models.CharField(verbose_name='фамилия', max_length=150)
-    is_superuser = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
     USERNAME_FIELD = 'email'
 
@@ -40,9 +39,6 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.is_superuser
-
-    def get_full_name(self):
-        return f'{self.first_name} + {self.last_name}'
 
     def get_short_name(self):
         return f'{self.username[:15]}'
@@ -83,5 +79,9 @@ class Subscribe(models.Model):
             models.UniqueConstraint(
                 fields=('user', 'author'),
                 name='unique_user_follow'
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='Нельзя подписаться на самого себя!',
             )
         ]

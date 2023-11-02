@@ -1,16 +1,32 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
+from django.core.validators import RegexValidator
 from django.db import models
+
+from backend.constants import (
+    TAG_NAME_MAX_LENGTH, TAG_SLUG_MAX_LENGTH,
+    RECIPE_MAX_LENGTH, INGREDIENTS_NAME_MAX_LENGTH,
+    INGREDIENTS_MEASUREMENT_MAX_LENGTH
+)
 
 User = get_user_model()
 
+color_validator = RegexValidator(
+    r'^#[a-fA-F0-9]{6}$',
+    'Enter a valid HEX color. (e.g., "#FF0033")'
+)
 
-# Represents a tag that can be associated with a recipe
+
 class Tag(models.Model):
-    name = models.CharField('Название тэга', unique=True, max_length=20)
-    slug = models.SlugField('Адрес тэга', unique=True, max_length=20)
+    name = models.CharField('Название тэга', unique=True,
+                            max_length=TAG_NAME_MAX_LENGTH)
+    slug = models.SlugField('Адрес тэга', unique=True,
+                            max_length=TAG_SLUG_MAX_LENGTH)
     color = models.CharField(
-        'Цвет(HEX)', unique=True, max_length=7, default='#49B64E'
+        'Цвет(HEX)',
+        unique=True, max_length=7,
+        default='#49B64E',
+        validators=[color_validator]
     )
 
     class Meta:
@@ -22,10 +38,11 @@ class Tag(models.Model):
         return self.name
 
 
-# Represents an ingredient that can be used in a recipe
 class Ingredient(models.Model):
-    name = models.CharField('Название ингредиента', max_length=200)
-    measurement_unit = models.CharField('Еденицы измерения', max_length=20)
+    name = models.CharField('Название ингредиента',
+                            max_length=INGREDIENTS_NAME_MAX_LENGTH)
+    measurement_unit = models.CharField(
+        'Еденицы измерения', max_length=INGREDIENTS_MEASUREMENT_MAX_LENGTH)
 
     class Meta:
         verbose_name = 'Ингредиент'
@@ -42,9 +59,8 @@ class Ingredient(models.Model):
         return f'{self.name}, {self.measurement_unit}'
 
 
-# Represents a recipe
 class Recipe(models.Model):
-    name = models.CharField('Название рецепта', max_length=200)
+    name = models.CharField('Название рецепта', max_length=RECIPE_MAX_LENGTH)
     text = models.TextField('Описание')
     image = models.ImageField('Изображение', upload_to='recipes/images/')
     cooking_time = models.PositiveIntegerField(
@@ -81,7 +97,6 @@ class Recipe(models.Model):
         return f'{self.name} ({self.author})'
 
 
-# Represents a specific ingredient's amount used in a recipe
 class IngredientRecipe(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE,
@@ -111,7 +126,6 @@ class IngredientRecipe(models.Model):
         ]
 
 
-# Represents a user's favorite recipes
 class Favorite(models.Model):
     user = models.ForeignKey(
         User,
@@ -136,7 +150,6 @@ class Favorite(models.Model):
         return f'{self.user} -> {self.recipe}'
 
 
-# Represents a user's shopping cart with selected recipes
 class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,

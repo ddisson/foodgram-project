@@ -50,7 +50,12 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
-class SubscribeListSerializer(serializers.ModelSerializer):
+class UserReadSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        exclude = ['password']
+
+
+class SubscribeListSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
@@ -70,7 +75,11 @@ class SubscribeListSerializer(serializers.ModelSerializer):
         author = get_object_or_404(User, id=obj.pk)
         recipes = author.recipes.all()
         if limit:
-            recipes = recipes[:int(limit)]
+            try:
+                recipes = recipes[:int(limit)]
+            except ValueError:
+                recipes = recipes[:10]
+
         serializer = SubscribeRecipeSerializer(
             recipes,
             many=True,

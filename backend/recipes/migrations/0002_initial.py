@@ -7,7 +7,6 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    initial = True
 
     dependencies = [
         ('recipes', '0001_initial'),

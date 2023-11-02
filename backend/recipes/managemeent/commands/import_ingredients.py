@@ -13,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument(
             'file_path',
             type=str,
-            help="Path to the ingredients CSV file")
+            help='Path to the ingredients CSV file')
 
     def handle(self, *args, **options):
         file_path = options['file_path']

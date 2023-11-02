@@ -1,6 +1,4 @@
 import io
-import os
-
 from django.http import FileResponse
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
@@ -8,27 +6,14 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+from backend.constants import (
+    FONT_NAME, FONT_PATH,
+    HEADER_FONT_SIZE, HEADER_TOP_MARGIN,
+    HEADER_BOTTOM_MARGIN, BODY_FONT_SIZE,
+    BODY_LINE_SPACING, TEXT_MARGINS, SPACER
+)
 
-FONTS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
-FONT_NAME = 'arial'
-FONT_PATH = os.path.join(FONTS_ROOT, 'arial.ttf')
 pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
-
-HEADER_FONT_SIZE = 30
-HEADER_TOP_MARGIN = 20
-HEADER_BOTTOM_MARGIN = 35
-
-BODY_FONT_SIZE = 16
-BODY_LINE_SPACING = 10
-
-TEXT_MARGINS = {
-    'top': 10,
-    'bottom': 12,
-    'right': 12,
-    'left': 50
-}
-
-SPACER = 1
 
 
 def create_paragraph(text, size, alignment=TA_LEFT, font=FONT_NAME):
